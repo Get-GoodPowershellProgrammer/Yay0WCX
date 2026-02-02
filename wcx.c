@@ -3,62 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <time.h>
-// WCX header definitions (from wcxhead.h)
-#define E_END_ARCHIVE     10
-#define E_NO_MEMORY       11
-#define E_BAD_DATA        12
-#define E_BAD_ARCHIVE     13
-#define E_UNKNOWN_FORMAT  14
-#define E_EOPEN           15
-#define E_ECREATE         16
-#define E_ECLOSE          17
-#define E_EREAD           18
-#define E_EWRITE          19
-#define E_SMALL_BUF       20
-#define E_EABORTED        21
-#define E_NO_FILES        22
-#define E_TOO_MANY_FILES  23
-#define E_NOT_SUPPORTED   24
-
-#define PK_OM_LIST         0
-#define PK_OM_EXTRACT      1
-
-#define PK_SKIP            0
-#define PK_TEST            1
-#define PK_EXTRACT         2
-
-#define PK_CAPS_BY_CONTENT 64
-
-typedef struct {
-    char ArcName[260];
-    char FileName[260];
-    int Flags;
-    int PackSize;
-    int UnpSize;
-    int HostOS;
-    int FileCRC;
-    int FileTime;
-    int UnpVer;
-    int Method;
-    int FileAttr;
-    char* CmtBuf;
-    int CmtBufSize;
-    int CmtSize;
-    int CmtState;
-} tHeaderData;
-
-typedef struct {
-    char* ArcName;
-    int OpenMode;
-    int OpenResult;
-    char* CmtBuf;
-    int CmtBufSize;
-    int CmtSize;
-    int CmtState;
-} tOpenArchiveData;
-
-typedef int (*tChangeVolProc)(char *ArcName, int Mode);
-typedef int (*tProcessDataProc)(char *FileName, int Size);
+#include "wcxhead.h"
 
 // Archive handle
 typedef struct {
