@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <time.h>
-
 // WCX header definitions (from wcxhead.h)
 #define E_END_ARCHIVE     10
 #define E_NO_MEMORY       11
