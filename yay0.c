@@ -16,16 +16,18 @@ uint16_t swap16(uint16_t val) {
     return (val >> 8) | (val << 8);
 }
 
-// Yay0 decompression
+// Yay0 decompression. Code taken from Yet Another GameCube Documentation
 int decode_yay0(FILE *s, uint8_t **output_buf, uint32_t *output_size) {
     uint32_t i, j, k, cnt, r22, r26, r25, r30, p, q;
 
     fseek(s, 0, SEEK_SET);
     char sig[4];
-    if (fread(sig, 1, 4, s) != 4 || memcmp(sig, "Yay0", 4) != 0) {
-        return E_UNKNOWN_FORMAT;
+    // Is this Yay0? We check it (again) by reading the first 4 bytes and seeing if they actually have the Yay0 signature.
+    if (fread(sig, 1, 4, s) != 4 || memcmp(sig, SIGNATURE, 4) != 0) {
+        return E_UNKNOWN_FORMAT; // Abort
     }
 
+    // 
     if (fread(&i, 4, 1, s) != 1 || fread(&j, 4, 1, s) != 1 || fread(&k, 4, 1, s) != 1) {
         return E_EREAD;
     }

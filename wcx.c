@@ -5,6 +5,7 @@
 #include <time.h>
 #include "wcxhead.h"
 #include "yay0.h"
+#include "yay0encoder.h"
 #ifdef __WIN32
     #define EXPORT __declspec(dllexport)
 #else
@@ -168,6 +169,39 @@ int EXPORT CloseArchive(void *hArcData) {
     return 0;
 }
 
+int EXPORT PackFiles(char *PackedFile, char *SubPath, char *SrcPath, char *AddList, int Flags)
+{
+    // Log everything DC passes
+    FILE *log = fopen("/tmp/yay0_pack_debug.log", "w");
+    if (log) {
+        fprintf(log, "PackedFile: [%s]\n", PackedFile ? PackedFile : "(null)");
+        fprintf(log, "SubPath:    [%s]\n", SubPath ? SubPath : "(null)");
+        fprintf(log, "SrcPath:    [%s]\n", SrcPath ? SrcPath : "(null)");
+        fprintf(log, "AddList:    [", NULL);
+        if (AddList) {
+            // Print char by char so we can see newlines and nulls
+            for (int i = 0; i < 512; i++) {
+                if (AddList[i] == '\0' && (i + 1 >= 512 || AddList[i + 1] == '\0')) {
+                    break;  // double null = end of list
+                }
+                if (AddList[i] == '\n') {
+                    fprintf(log, "\\n");
+                } else if (AddList[i] == '\0') {
+                    fprintf(log, "\\0");
+                } else {
+                    fprintf(log, "%c", AddList[i]);
+                }
+            }
+        }
+        fprintf(log, "]\n");
+        fprintf(log, "Flags:      %d\n", Flags);
+        fclose(log);
+    }
+
+    int result = encode_yay0(PackedFile, SubPath, SrcPath, AddList, Flags);
+    return result;
+}
+
 void EXPORT SetChangeVolProc(void *hArcData, tChangeVolProc pChangeVolProc1) {
 }
 
@@ -175,7 +209,7 @@ void EXPORT SetProcessDataProc(void *hArcData, tProcessDataProc pProcessDataProc
 }
 
 int EXPORT GetPackerCaps(void) {
-    return PK_CAPS_BY_CONTENT;
+    return PK_CAPS_BY_CONTENT | PK_CAPS_NEW;
 }
 
 int EXPORT CanYouHandleThisFile(char *FileName) {
@@ -186,7 +220,7 @@ int EXPORT CanYouHandleThisFile(char *FileName) {
 
     char sig[4];
     int result = 0;
-    if (fread(sig, 1, 4, f) == 4 && memcmp(sig, "Yay0", 4) == 0) {
+    if (fread(sig, 1, 4, f) == 4 && memcmp(sig, SIGNATURE, 4) == 0) {
         result = 1;
     }
 

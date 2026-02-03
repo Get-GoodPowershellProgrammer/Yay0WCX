@@ -15,7 +15,7 @@ else  # Use GCC
     OUTPUT_NAME = yay0.wcx
 endif
 
-SRCS = wcx.c yay0.c
+SRCS = wcx.c yay0.c yay0encoder.c
 OBJS = $(SRCS:.c=.o)
 LIBRARY = yay0.wcx
 
