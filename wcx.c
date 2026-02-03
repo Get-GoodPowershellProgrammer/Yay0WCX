@@ -4,121 +4,16 @@
 #include <stdint.h>
 #include <time.h>
 #include "wcxhead.h"
+#include "yay0.h"
 
-// Archive handle
+// Archive handle - arcname added
 typedef struct {
     FILE *file;
     int header_read;
     uint32_t unpacked_size;
+    char arcname[512];
 } ArchiveHandle;
 
-// Byte swap functions
-static uint32_t swap32(uint32_t val) {
-    return ((val >> 24) & 0xff) |
-           ((val >> 8) & 0xff00) |
-           ((val << 8) & 0xff0000) |
-           ((val << 24) & 0xff000000);
-}
-
-static uint16_t swap16(uint16_t val) {
-    return (val >> 8) | (val << 8);
-}
-
-// Yay0 decompression
-static int decode_yay0(FILE *s, uint8_t **output_buf, uint32_t *output_size) {
-    uint32_t i, j, k, cnt, r22, r26, r25, r30, p, q;
-
-    fseek(s, 0, SEEK_SET);
-    char sig[4];
-    if (fread(sig, 1, 4, s) != 4 || memcmp(sig, "Yay0", 4) != 0) {
-        return E_UNKNOWN_FORMAT;
-    }
-
-    if (fread(&i, 4, 1, s) != 1 || fread(&j, 4, 1, s) != 1 || fread(&k, 4, 1, s) != 1) {
-        return E_EREAD;
-    }
-    
-    i = swap32(i);
-    j = swap32(j);
-    k = swap32(k);
-    
-    if (i == 0 || i > 100000000) {
-        return E_BAD_DATA;
-    }
-
-    uint8_t *output = malloc(i);
-    if (!output) {
-        return E_NO_MEMORY;
-    }
-
-    q = 0;
-    cnt = 0;
-    p = 16;
-
-    while (q < i) {
-        if (cnt == 0) {
-            fseek(s, p, SEEK_SET);
-            if (fread(&r22, 4, 1, s) != 1) {
-                free(output);
-                return E_EREAD;
-            }
-            r22 = swap32(r22);
-            p += 4;
-            cnt = 32;
-        }
-
-        if (r22 & 0x80000000) {
-            fseek(s, k, SEEK_SET);
-            if (fread(&output[q], 1, 1, s) != 1) {
-                free(output);
-                return E_EREAD;
-            }
-            k++;
-            q++;
-        } else {
-            fseek(s, j, SEEK_SET);
-            if (fread(&r26, 2, 1, s) != 1) {
-                free(output);
-                return E_EREAD;
-            }
-            r26 = swap16(r26);
-            j += 2;
-
-            uint32_t dist = (r26 & 0xfff) + 1;
-            r30 = r26 >> 12;
-
-            if (r30 == 0) {
-                uint8_t modifier;
-                fseek(s, k, SEEK_SET);
-                if (fread(&modifier, 1, 1, s) != 1) {
-                    free(output);
-                    return E_EREAD;
-                }
-                k++;
-                r30 = modifier + 18;
-            } else {
-                r30 += 2;
-            }
-
-            if (dist > q || q + r30 > i) {
-                free(output);
-                return E_BAD_DATA;
-            }
-
-            r25 = q - dist;
-            for (uint32_t n = 0; n < r30; n++) {
-                output[q++] = output[r25++];
-            }
-        }
-
-        r22 <<= 1;
-        cnt--;
-    }
-
-    *output_buf = output;
-    *output_size = i;
-    return 0;
-}
 
 // WCX Plugin Interface Functions
 
@@ -135,7 +30,7 @@ void* __attribute__((visibility("default"))) OpenArchive(tOpenArchiveData *Archi
     }
 
     char sig[4];
-    if (fread(sig, 1, 4, f) != 4 || memcmp(sig, "Yay0", 4) != 0) {
+    if (fread(sig, 1, 4, f) != 4 || memcmp(sig, SIGNATURE, 4) != 0) {
         fclose(f);
         ArchiveData->OpenResult = E_UNKNOWN_FORMAT;
         return NULL;
@@ -158,6 +53,23 @@ void* __attribute__((visibility("default"))) OpenArchive(tOpenArchiveData *Archi
     handle->file = f;
     handle->header_read = 0;
     handle->unpacked_size = swap32(size);
+
+    // Strip path, keep only filename
+    const char *basename = strrchr(ArchiveData->ArcName, '/');
+    if (basename) {
+        basename++;
+    } else {
+        basename = ArchiveData->ArcName;
+    }
+    strncpy(handle->arcname, basename, sizeof(handle->arcname) - 1);
+    handle->arcname[sizeof(handle->arcname) - 1] = '\0';
+
+    // Replace extension with .arc
+    char *dot = strrchr(handle->arcname, '.');
+    if (dot) {
+        *dot = '\0';
+    }
+    strncat(handle->arcname, ".arc", sizeof(handle->arcname) - strlen(handle->arcname) - 1);
     
     ArchiveData->OpenResult = 0;
     return handle;
@@ -175,7 +87,8 @@ int __attribute__((visibility("default"))) ReadHeader(void *hArcData, tHeaderDat
     }
 
     memset(HeaderData, 0, sizeof(tHeaderData));
-    strcpy(HeaderData->FileName, "decompressed.bin");
+    // Use the arcname we stored in OpenArchive
+    strncpy(HeaderData->FileName, handle->arcname, sizeof(HeaderData->FileName) - 1);
     HeaderData->PackSize = 0;
     HeaderData->UnpSize = handle->unpacked_size;
     HeaderData->HostOS = 0;
@@ -251,18 +164,15 @@ int __attribute__((visibility("default"))) CloseArchive(void *hArcData) {
 }
 
 void __attribute__((visibility("default"))) SetChangeVolProc(void *hArcData, tChangeVolProc pChangeVolProc1) {
-    // Not needed for Yay0
 }
 
 void __attribute__((visibility("default"))) SetProcessDataProc(void *hArcData, tProcessDataProc pProcessDataProc) {
-    // Not needed for Yay0
 }
 
 int __attribute__((visibility("default"))) GetPackerCaps(void) {
-    return PK_CAPS_BY_CONTENT;  // We can detect Yay0 by content
+    return PK_CAPS_BY_CONTENT;
 }
 
-// Optional: Detect if file is Yay0 by content
 int __attribute__((visibility("default"))) CanYouHandleThisFile(char *FileName) {
     FILE *f = fopen(FileName, "rb");
     if (!f) {
