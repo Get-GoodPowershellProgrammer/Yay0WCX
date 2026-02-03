@@ -5,6 +5,11 @@
 #include <time.h>
 #include "wcxhead.h"
 #include "yay0.h"
+#ifdef __WIN32
+    #define EXPORT __declspec(dllexport)
+#else
+    #define EXPORT __attribute__((visibility("default")))
+#endif
 
 // Archive handle - arcname added
 typedef struct {
@@ -17,7 +22,7 @@ typedef struct {
 
 // WCX Plugin Interface Functions
 
-void* __attribute__((visibility("default"))) OpenArchive(tOpenArchiveData *ArchiveData) {
+void* EXPORT OpenArchive(tOpenArchiveData *ArchiveData) {
     if (!ArchiveData || !ArchiveData->ArcName) {
         if (ArchiveData) ArchiveData->OpenResult = E_BAD_ARCHIVE;
         return NULL;
@@ -75,7 +80,7 @@ void* __attribute__((visibility("default"))) OpenArchive(tOpenArchiveData *Archi
     return handle;
 }
 
-int __attribute__((visibility("default"))) ReadHeader(void *hArcData, tHeaderData *HeaderData) {
+int EXPORT ReadHeader(void *hArcData, tHeaderData *HeaderData) {
     if (!hArcData || !HeaderData) {
         return E_BAD_ARCHIVE;
     }
@@ -150,7 +155,7 @@ int __attribute__((visibility("default"))) ProcessFile(void *hArcData, int Opera
     return E_NOT_SUPPORTED;
 }
 
-int __attribute__((visibility("default"))) CloseArchive(void *hArcData) {
+int EXPORT CloseArchive(void *hArcData) {
     if (!hArcData) {
         return 0;
     }
@@ -163,17 +168,17 @@ int __attribute__((visibility("default"))) CloseArchive(void *hArcData) {
     return 0;
 }
 
-void __attribute__((visibility("default"))) SetChangeVolProc(void *hArcData, tChangeVolProc pChangeVolProc1) {
+void EXPORT SetChangeVolProc(void *hArcData, tChangeVolProc pChangeVolProc1) {
 }
 
-void __attribute__((visibility("default"))) SetProcessDataProc(void *hArcData, tProcessDataProc pProcessDataProc) {
+void EXPORT SetProcessDataProc(void *hArcData, tProcessDataProc pProcessDataProc) {
 }
 
-int __attribute__((visibility("default"))) GetPackerCaps(void) {
+int EXPORT GetPackerCaps(void) {
     return PK_CAPS_BY_CONTENT;
 }
 
-int __attribute__((visibility("default"))) CanYouHandleThisFile(char *FileName) {
+int EXPORT CanYouHandleThisFile(char *FileName) {
     FILE *f = fopen(FileName, "rb");
     if (!f) {
         return 0;

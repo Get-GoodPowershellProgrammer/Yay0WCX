@@ -1,6 +1,19 @@
-CC = gcc
-CFLAGS = -fPIC -Wall
-LDFLAGS = -shared
+#Windows check
+ifeq ($(OS), Windows_NT)
+    CC = x86_64-w64-mingw32-gcc
+    CFLAGS = -shared -fPIC -Wall
+    LDFLAGS = -shared
+    OUT_EXT = .wcx
+    LIBEXT = .wcx
+    OUTPUT_NAME = yay0.wcx
+else  # Use GCC
+    CC = gcc
+    CFLAGS = -shared -fPIC -Wall
+    LDFLAGS = -shared
+    OUT_EXT = .wcx
+    LIBEXT = .wcx
+    OUTPUT_NAME = yay0.wcx
+endif
 
 SRCS = wcx.c yay0.c
 OBJS = $(SRCS:.c=.o)
