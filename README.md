@@ -1,8 +1,8 @@
-# A Double Commander unpacker plugin for Yay0 archives.
-The plugin was tested in Linux.
-It wouldn't have been possible without Jacknife's wcxhead.h, Yet Another GameCube Documentation, and Claude Code. So thanks :)
+# A Double Commander unpacker (and packer) plugin for Yay0 archives.
+The plugin was tested in Linux, but it builds a DLL with MinGW
+It wouldn't have been possible without Jacknife's wcxhead.h, Yet Another GameCube Documentation, Ethan Roseman's Yay0 Encoder and Claude Code. So thanks :)
 # Building
 Use
 ```sh
-gcc -Wall -O2 -fPIC -shared -o yay0wcx.wcx wcx.c
+make
 ```
